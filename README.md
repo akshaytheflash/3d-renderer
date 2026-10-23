@@ -2,6 +2,7 @@
 
 > **A high-performance, production-ready WebGL / Three.js 3D procedural configurator and additive manufacturing slicer.** Generate, customize, and manipulate real 3D geometry in real-time, inspect printability with custom GLSL overhang shaders, simulate G-code layer slicing, and export watertight Binary STL and OBJ files ready for 3D printing.
 
+[![Live Vercel](https://img.shields.io/badge/Live%20Vercel-3drender--nine.vercel.app-black?style=for-the-badge&logo=vercel)](https://3drender-nine.vercel.app)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Flypod-00f0ff?style=for-the-badge&logo=cloudflare)](https://5524886921504696.flypod.page)
 [![Mirror Demo](https://img.shields.io/badge/Mirror%20Demo-ShipStatic-10b981?style=for-the-badge)](https://turbo-micro-d43ytmy.shipstatic.com)
 [![Three.js](https://img.shields.io/badge/Three.js-r182-black?style=for-the-badge&logo=three.js)](https://threejs.org/)
@@ -12,6 +13,7 @@
 
 ## 🌐 Live Deployments
 
+- **Official Vercel Production**: [https://3drender-nine.vercel.app](https://3drender-nine.vercel.app)
 - **Primary Cloudflare Edge (HTTPS)**: [https://5524886921504696.flypod.page](https://5524886921504696.flypod.page)
 - **Secondary Mirror (HTTPS)**: [https://turbo-micro-d43ytmy.shipstatic.com](https://turbo-micro-d43ytmy.shipstatic.com)
 
