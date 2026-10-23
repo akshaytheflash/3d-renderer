@@ -19,7 +19,7 @@ export const TechStackModal: React.FC<TechStackModalProps> = ({ isOpen, onClose 
             <Code2 className="w-5 h-5 text-[#00f0ff]" />
             <div>
               <h2 className="font-mono text-sm font-bold tracking-wider text-[#e1e7ec]">
-                SYSTEM ARCHITECTURE & PORTFOLIO SPECIFICATION
+                SYSTEM ARCHITECTURE
               </h2>
               <span className="text-[10px] text-[#8e9dae] font-sans">
                 Production-grade WebGL/Three.js Procedural 3D Configurator & Slicer
@@ -42,39 +42,39 @@ export const TechStackModal: React.FC<TechStackModalProps> = ({ isOpen, onClose 
           {/* Executive Summary */}
           <section className="space-y-2">
             <h3 className="font-mono text-xs font-bold text-[#00f0ff] uppercase tracking-wider flex items-center gap-2">
-              <Award className="w-4 h-4 text-[#00f0ff]" /> 1. Executive Portfolio Summary
+              <Award className="w-4 h-4 text-[#00f0ff]" /> 1. Overview
             </h3>
             <p>
               <strong className="text-[#e1e7ec]">Kinetic Forge 3D</strong> is a high-performance, browser-based
-              procedural CAD application engineered for real-time additive manufacturing and generative industrial design.
-              It eliminates the typical generic AI aesthetics by employing a precision aerospace CAD design language
-              (Forge-OS) built with strict typographic discipline, custom WebGL GLSL shaders, and mathematical surface generation.
+              procedural CAD application for real-time additive manufacturing and generative industrial design.
+              It employs a precision aerospace CAD design language built with strict typographic discipline,
+              custom WebGL GLSL shaders, and mathematical surface generation.
             </p>
           </section>
 
-          {/* Candidate Role & Engineering Highlights */}
+          {/* Engineering Features */}
           <section className="space-y-2 bg-[#0a0d12] p-4 rounded-sm border border-[#232b38]">
             <h3 className="font-mono text-xs font-bold text-[#ff8400] uppercase tracking-wider flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-[#ff8400]" /> 2. Key Engineering Contributions (Resume Bullets)
+              <Terminal className="w-4 h-4 text-[#ff8400]" /> 2. Key Engineering Features
             </h3>
             <ul className="list-disc list-inside space-y-1.5 text-[#e1e7ec]">
               <li>
-                <strong>Procedural Geometry Kernel:</strong> Authored mathematically grounded parametric engines in TypeScript, including involute gear tooth profiling, Triply Periodic Minimal Surfaces (Gyroid, Schwarz-P), and watertight fluted vessels with sub-millisecond CPU rebuild times.
+                <strong>Procedural Geometry Kernel:</strong> Parametric geometry engines in TypeScript, including involute gear tooth profiling, Triply Periodic Minimal Surfaces (Gyroid, Schwarz-P), and watertight fluted vessels with sub-millisecond CPU rebuild times.
               </li>
               <li>
-                <strong>Physical Analysis & Calculus:</strong> Implemented the Divergence Theorem via signed tetrahedron volume summation to calculate exact manifold volume ($cm^3$), surface area, and center-of-mass directly on custom BufferGeometries.
+                <strong>Physical Analysis:</strong> Manifold volume ($cm^3$), surface area, and center-of-mass computed via signed tetrahedron summation (divergence theorem) directly on custom BufferGeometries.
               </li>
               <li>
-                <strong>Diagnostic WebGL Shaders:</strong> Wrote custom GLSL vertex and fragment shaders computing surface normals relative to gravity vectors to render real-time printability heatmaps (flagging &gt;45° overhangs requiring support).
+                <strong>Diagnostic WebGL Shaders:</strong> Custom GLSL vertex and fragment shaders computing surface normals relative to gravity vectors to render real-time printability heatmaps (flagging &gt;45° overhangs requiring support).
               </li>
               <li>
-                <strong>Native Slicing Simulation:</strong> Built a toolpath intersection algorithm slicing 3D meshes along arbitrary layer heights (0.12mm–0.28mm) for interactive in-browser toolpath inspection.
+                <strong>Native Slicing Simulation:</strong> Toolpath intersection algorithm slicing 3D meshes along arbitrary layer heights (0.12mm–0.28mm) for interactive in-browser toolpath inspection.
               </li>
               <li>
-                <strong>Zero-Dependency Binary STL Exporter:</strong> Implemented a low-level ArrayBuffer and DataView binary encoder creating valid 80-byte header, uint32 face count, and Little-Endian float32 normals, verified 100% compliant with Bambu Studio, PrusaSlicer, and Cura.
+                <strong>Zero-Dependency Binary STL Exporter:</strong> Low-level ArrayBuffer and DataView binary encoder producing a valid 80-byte header, uint32 face count, and Little-Endian float32 normals, verified 100% compliant with Bambu Studio, PrusaSlicer, and Cura.
               </li>
               <li>
-                <strong>Tactile UI & Auditory Synthesizer:</strong> Integrated Web Audio API to generate procedural micro-frequencies for interactive sliders, state undo/redo, and export notifications.
+                <strong>Tactile UI & Auditory Synthesizer:</strong> Web Audio API generating procedural micro-frequencies for interactive sliders, state undo/redo, and export notifications.
               </li>
             </ul>
           </section>
@@ -98,7 +98,7 @@ export const TechStackModal: React.FC<TechStackModalProps> = ({ isOpen, onClose 
               <div className="bg-[#0a0d12] p-3 rounded border border-[#232b38]">
                 <div className="text-[#00f0ff] font-bold mb-1">Styling & UI Tokens</div>
                 <div className="text-[11px] text-[#e1e7ec]">Tailwind CSS v4 + Lucide Icons</div>
-                <div className="text-[10px] text-[#6b7b8e]">No default AI slop; high-contrast CAD tokens</div>
+                <div className="text-[10px] text-[#6b7b8e]">High-contrast CAD design tokens</div>
               </div>
               <div className="bg-[#0a0d12] p-3 rounded border border-[#232b38]">
                 <div className="text-[#00f0ff] font-bold mb-1">Sound & FX</div>
@@ -133,7 +133,7 @@ export const TechStackModal: React.FC<TechStackModalProps> = ({ isOpen, onClose 
         {/* Footer */}
         <div className="p-4 border-t border-[#232b38] bg-[#0a0d12] flex items-center justify-between">
           <span className="text-[11px] font-mono text-[#6b7b8e]">
-            Ready for portfolio repository & technical interview demos
+            WebGL/Three.js procedural geometry, diagnostics &amp; slicing
           </span>
           <button
             onClick={() => {

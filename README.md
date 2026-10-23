@@ -55,25 +55,12 @@
 
 ---
 
-## 🎨 Visual Design Philosophy (Frontend Design Skill)
+## 🎨 Visual Design Philosophy
 
 To avoid predictable, template-heavy **"AI slop"** (purple gradients on white, floaty card kits, generic emojis, and uninspired layouts), Kinetic Forge 3D adheres to an **Aerospace Machining & Generative CAD** design language:
 - **Palette**: Deep Carbon Void (`#0A0D12`), Anodized Slate Panel (`#12161F`), Machined Titanium Borders (`#232B38`), Luminescent Cyan Vector Accent (`#00F0FF`), and Cadmium Safety Amber (`#FF8400`).
 - **Typography**: Clean `Inter` system UI paired with `JetBrains Mono` for all coordinate readouts, facet metrics, and dimensional telemetry.
 - **Layout**: Immersive 3D viewport flanked by dual precision telemetry wings, persistent tactile segmented controls, and unobtrusive floating toolbars.
-
----
-
-## 💼 Portfolio Case Study & Candidate Role (For Job Applications)
-
-When presenting this project in a portfolio or technical interview, highlight the following engineering achievements:
-
-### Resume Bullet Points
-- **Built a Production-Ready 3D CAD Web Application**: Engineered a procedural geometry engine in React 19, TypeScript, and Three.js capable of synthesizing complex parametric meshes with sub-millisecond CPU rebuild times.
-- **Authored Custom WebGL Shaders**: Developed GLSL vertex and fragment shaders computing surface normal slopes relative to gravity vectors to render real-time 3D printability overhang heatmaps.
-- **Implemented Physical Calculus Algorithms**: Applied the Divergence Theorem via signed tetrahedron volume summation to compute exact manifold volumes ($cm^3$), surface areas, and filament masses for FDM and SLA resins.
-- **Created a Native Slicing Simulator**: Developed a 3D triangle plane-intersection algorithm to generate toolpath contours across arbitrary layer heights ($0.12\text{mm} - 0.28\text{mm}$) directly in the browser.
-- **Engineered Binary STL & OBJ Exporters**: Wrote low-level binary buffer encoders formatting watertight 3D geometries with proper Little-Endian byte alignment and $Z$-up coordinate remapping for slicers.
 
 ---
 
@@ -86,8 +73,8 @@ When presenting this project in a portfolio or technical interview, highlight th
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/kinetic-forge-3d.git
-cd kinetic-forge-3d
+git clone https://github.com/akshaytheflash/3d-renderer.git
+cd 3d-renderer
 
 # Install dependencies
 npm install

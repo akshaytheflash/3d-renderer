@@ -320,7 +320,7 @@ export default function App() {
         onExportJson={handleExportJson}
       />
 
-      {/* Tech Stack & Job Application Portfolio Modal */}
+      {/* Tech Stack Modal */}
       <TechStackModal
         isOpen={isTechStackModalOpen}
         onClose={() => setIsTechStackModalOpen(false)}

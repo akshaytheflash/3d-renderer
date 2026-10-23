@@ -95,7 +95,7 @@ export const TopNavigationBar: React.FC<TopNavigationBarProps> = ({
         </button>
       </div>
 
-      {/* Right: Audio toggle, Tech Stack & Portfolio Specs */}
+      {/* Right: Audio toggle, Tech Stack modal */}
       <div className="flex items-center gap-2">
         <button
           onClick={() => {
