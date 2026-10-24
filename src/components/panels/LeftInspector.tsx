@@ -22,7 +22,7 @@ interface LeftInspectorProps {
   onImportJson: (json: Partial<ConfiguratorState>) => void;
 }
 
-const GENERATORS: GeneratorType[] = ['vase', 'gear', 'sculpture', 'gyroid', 'lantern'];
+const GENERATORS: GeneratorType[] = ['vase', 'gear', 'sculpture', 'gyroid', 'lantern', 'custom'];
 
 export const LeftInspector: React.FC<LeftInspectorProps> = ({
   state,
@@ -88,12 +88,20 @@ export const LeftInspector: React.FC<LeftInspectorProps> = ({
     }));
   };
 
+  const updateCustom = (key: keyof ConfiguratorState['custom'], val: any) => {
+    onChange((prev) => ({
+      ...prev,
+      custom: { ...prev.custom, [key]: val },
+    }));
+  };
+
   // Defaults reference from built-in preset #0
   const defaultVase = BUILTIN_PRESETS[0].params;
   const defaultGear = BUILTIN_PRESETS[2].params;
   const defaultSculpture = BUILTIN_PRESETS[4].params;
   const defaultGyroid = BUILTIN_PRESETS[6].params;
   const defaultLantern = BUILTIN_PRESETS[7].params;
+  const defaultCustom = BUILTIN_PRESETS.find((p) => p.generatorType === 'custom')!.params;
 
   if (isCollapsed) {
     return (
@@ -701,6 +709,156 @@ export const LeftInspector: React.FC<LeftInspectorProps> = ({
                 step={0.4}
                 unit="mm"
                 onChange={(v) => updateLantern('wallThickness', v)}
+              />
+            </AccordionSection>
+          </>
+        )}
+
+        {/* ===================== CUSTOM (SUPERFORMULA) ACCORDIONS ===================== */}
+        {state.generatorType === 'custom' && (
+          <>
+            {/* Section 1: Superformula Exponents */}
+            <AccordionSection
+              title="Gielis Cross-Section"
+              isOpen={isSecOpen(1)}
+              onToggle={() => toggleSection(1)}
+              contentClassName="space-y-1"
+            >
+              <ParameterControl
+                label="Symmetry / Lobes (m)"
+                value={state.custom.m}
+                defaultValue={defaultCustom.m}
+                min={2}
+                max={24}
+                step={1}
+                unit="lobes"
+                onChange={(v) => updateCustom('m', v)}
+              />
+              <ParameterControl
+                label="Scale a"
+                value={state.custom.a}
+                defaultValue={defaultCustom.a}
+                min={0.2}
+                max={3}
+                step={0.1}
+                onChange={(v) => updateCustom('a', v)}
+              />
+              <ParameterControl
+                label="Scale b"
+                value={state.custom.b}
+                defaultValue={defaultCustom.b}
+                min={0.2}
+                max={3}
+                step={0.1}
+                onChange={(v) => updateCustom('b', v)}
+              />
+              <ParameterControl
+                label="Fatness n1"
+                value={state.custom.n1}
+                defaultValue={defaultCustom.n1}
+                min={0.1}
+                max={8}
+                step={0.05}
+                description="Small values spike outward, large values round the lobes"
+                onChange={(v) => updateCustom('n1', v)}
+              />
+              <ParameterControl
+                label="Concavity n2"
+                value={state.custom.n2}
+                defaultValue={defaultCustom.n2}
+                min={0.1}
+                max={12}
+                step={0.1}
+                onChange={(v) => updateCustom('n2', v)}
+              />
+              <ParameterControl
+                label="Concavity n3"
+                value={state.custom.n3}
+                defaultValue={defaultCustom.n3}
+                min={0.1}
+                max={12}
+                step={0.1}
+                onChange={(v) => updateCustom('n3', v)}
+              />
+            </AccordionSection>
+
+            {/* Section 2: Vertical Form */}
+            <AccordionSection
+              title="Vertical Form"
+              isOpen={isSecOpen(2)}
+              onToggle={() => toggleSection(2)}
+              contentClassName="space-y-1"
+            >
+              <ParameterControl
+                label="Height"
+                value={state.custom.height}
+                defaultValue={defaultCustom.height}
+                min={60}
+                max={250}
+                step={5}
+                unit="mm"
+                onChange={(v) => updateCustom('height', v)}
+              />
+              <ParameterControl
+                label="Axial Twist"
+                value={state.custom.twist}
+                defaultValue={defaultCustom.twist}
+                min={-6.28}
+                max={6.28}
+                step={0.1}
+                unit="rad"
+                onChange={(v) => updateCustom('twist', v)}
+              />
+              <ParameterControl
+                label="Rim Taper"
+                value={state.custom.taper}
+                defaultValue={defaultCustom.taper}
+                min={0.4}
+                max={1.6}
+                step={0.05}
+                unit="×"
+                description="1.0 straight wall, below 1 tapers inward, above 1 flares out"
+                onChange={(v) => updateCustom('taper', v)}
+              />
+            </AccordionSection>
+
+            {/* Section 3: Shell & Resolution */}
+            <AccordionSection
+              title="Shell & Resolution"
+              isOpen={isSecOpen(3)}
+              onToggle={() => toggleSection(3)}
+              contentClassName="space-y-1"
+            >
+              <ParameterControl
+                label="Wall Thickness"
+                value={state.custom.wallThickness}
+                defaultValue={defaultCustom.wallThickness}
+                min={1.2}
+                max={8.0}
+                step={0.4}
+                unit="mm"
+                description="Always built hollow watertight, ready for vase mode"
+                onChange={(v) => updateCustom('wallThickness', v)}
+              />
+              <ParameterControl
+                label="Radial Resolution"
+                value={state.custom.resolutionRadial}
+                defaultValue={defaultCustom.resolutionRadial}
+                min={24}
+                max={128}
+                step={4}
+                unit="segs"
+                onChange={(v) => updateCustom('resolutionRadial', v)}
+              />
+              <ParameterControl
+                label="Height Resolution"
+                value={state.custom.resolutionHeight}
+                defaultValue={defaultCustom.resolutionHeight}
+                min={16}
+                max={96}
+                step={4}
+                unit="rings"
+                onChange={(v) => updateCustom('resolutionHeight', v)}
               />
             </AccordionSection>
           </>

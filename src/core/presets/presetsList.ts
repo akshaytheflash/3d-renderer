@@ -1,4 +1,20 @@
-import { Preset } from '../../types/configurator';
+import { CustomParams, Preset } from '../../types/configurator';
+
+const customPreset = (overrides: Partial<CustomParams>): CustomParams => ({
+  m: 6,
+  a: 1,
+  b: 1,
+  n1: 2,
+  n2: 7,
+  n3: 7,
+  height: 150,
+  twist: 0.6,
+  taper: 0.75,
+  wallThickness: 2.4,
+  resolutionRadial: 64,
+  resolutionHeight: 48,
+  ...overrides,
+});
 
 export const BUILTIN_PRESETS: Preset[] = [
   {
@@ -156,5 +172,51 @@ export const BUILTIN_PRESETS: Preset[] = [
       capTop: false,
       innerCavity: true,
     },
+  },
+  {
+    id: 'stellar-urn',
+    name: 'Stellar Hexagonal Urn',
+    description: 'Gielis superformula vessel with six concave radial lobes and spiraling taper.',
+    generatorType: 'custom',
+    params: customPreset({
+      m: 6,
+      n1: 2,
+      n2: 7,
+      n3: 7,
+      height: 150,
+      twist: 0.6,
+      taper: 0.75,
+    }),
+  },
+  {
+    id: 'star-urchin',
+    name: 'Star Urchin Bowl',
+    description: 'Five-pointed spiky superformula star flared into an organic urchin vessel.',
+    generatorType: 'custom',
+    params: customPreset({
+      m: 5,
+      n1: 0.35,
+      n2: 0.35,
+      n3: 0.35,
+      height: 110,
+      twist: 0,
+      taper: 1.15,
+      wallThickness: 2.0,
+    }),
+  },
+  {
+    id: 'wave-hybrid',
+    name: 'Gear-Wave Hybrid Twist',
+    description: 'Twelve-lobe superformula gear profile with aggressive 2.5 rad axial sweep.',
+    generatorType: 'custom',
+    params: customPreset({
+      m: 12,
+      n1: 3,
+      n2: 8,
+      n3: 8,
+      height: 140,
+      twist: 2.5,
+      taper: 0.85,
+    }),
   },
 ];

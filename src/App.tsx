@@ -35,6 +35,7 @@ const INITIAL_STATE: ConfiguratorState = {
   sculpture: { ...BUILTIN_PRESETS[4].params },
   gyroid: { ...BUILTIN_PRESETS[6].params },
   lantern: { ...BUILTIN_PRESETS[7].params },
+  custom: { ...BUILTIN_PRESETS.find((p) => p.generatorType === 'custom')!.params },
 
   materialMode: 'studio',
   materialColor: '#00f0ff',
@@ -106,6 +107,7 @@ export default function App() {
     sculpture: deferredSculpture,
     gyroid: deferredGyroid,
     lantern: deferredLantern,
+    custom: deferredCustom,
   } = deferredState;
   const baseGeometry = useMemo(() => {
     try {
@@ -116,12 +118,13 @@ export default function App() {
         sculpture: deferredSculpture,
         gyroid: deferredGyroid,
         lantern: deferredLantern,
+        custom: deferredCustom,
       } as ConfiguratorState);
     } catch (e) {
       console.error('Geometry generation error:', e);
       return null;
     }
-  }, [deferredGeneratorType, deferredVase, deferredGear, deferredSculpture, deferredGyroid, deferredLantern]);
+  }, [deferredGeneratorType, deferredVase, deferredGear, deferredSculpture, deferredGyroid, deferredLantern, deferredCustom]);
 
   // Auto-Repair topology: tracks *which* base geometry was repaired, so a
   // repair goes stale automatically as soon as parameters regenerate the mesh
@@ -206,6 +209,9 @@ export default function App() {
         case 'lantern':
           next.lantern = { ...preset.params };
           break;
+        case 'custom':
+          next.custom = { ...preset.params };
+          break;
       }
       return next;
     });
@@ -256,6 +262,17 @@ export default function App() {
           cellRows: Math.floor(5 + Math.random() * 6),
           twistAngle: parseFloat((Math.random() * 2).toFixed(2)),
           apertureSize: parseFloat((0.4 + Math.random() * 0.35).toFixed(2)),
+        };
+      } else if (next.generatorType === 'custom') {
+        next.custom = {
+          ...next.custom,
+          m: Math.floor(3 + Math.random() * 14),
+          n1: parseFloat((0.3 + Math.random() * 4).toFixed(2)),
+          n2: parseFloat((0.5 + Math.random() * 8).toFixed(2)),
+          n3: parseFloat((0.5 + Math.random() * 8).toFixed(2)),
+          height: Math.round(100 + Math.random() * 90),
+          twist: parseFloat(((Math.random() - 0.5) * 4).toFixed(2)),
+          taper: parseFloat((0.6 + Math.random() * 0.8).toFixed(2)),
         };
       }
       return next;

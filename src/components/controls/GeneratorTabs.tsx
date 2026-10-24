@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cylinder, Cog, Dna, Grid, Sparkles } from 'lucide-react';
+import { Cylinder, Cog, Dna, Grid, Sparkles, Shapes } from 'lucide-react';
 import { GeneratorType } from '../../types/configurator';
 import { sound } from '../../core/audio/synthAudio';
 
@@ -15,10 +15,11 @@ export const GeneratorTabs: React.FC<GeneratorTabsProps> = ({ current, onChange 
     { id: 'sculpture', label: 'Knot', subtitle: 'Torus Mobius', icon: <Dna className="w-3.5 h-3.5" /> },
     { id: 'gyroid', label: 'Gyroid', subtitle: 'TPMS Lattice', icon: <Grid className="w-3.5 h-3.5" /> },
     { id: 'lantern', label: 'Lantern', subtitle: 'Cellular Tower', icon: <Sparkles className="w-3.5 h-3.5" /> },
+    { id: 'custom', label: 'Custom', subtitle: 'Superformula', icon: <Shapes className="w-3.5 h-3.5" /> },
   ];
 
   return (
-    <div className="grid grid-cols-5 gap-1 p-1 bg-slate-950/70 border border-white/5 rounded-md">
+    <div className="grid grid-cols-6 gap-1 p-1 bg-slate-950/70 border border-white/5 rounded-md">
       {tabs.map((tab) => {
         const isActive = current === tab.id;
         return (

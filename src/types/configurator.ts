@@ -1,4 +1,4 @@
-export type GeneratorType = 'vase' | 'gyroid' | 'gear' | 'sculpture' | 'lantern';
+export type GeneratorType = 'vase' | 'gyroid' | 'gear' | 'sculpture' | 'lantern' | 'custom';
 
 export type MaterialMode = 'studio' | 'clay' | 'titanium' | 'resin' | 'overhang' | 'wireframe';
 
@@ -106,6 +106,22 @@ export interface LanternParams {
   innerCavity: boolean;
 }
 
+// Gielis superformula parameters for the Custom shape kernel
+export interface CustomParams {
+  m: number; // rotational symmetry (lobes), integer >= 2
+  a: number; // horizontal scale factor
+  b: number; // vertical scale factor
+  n1: number; // exponent controlling overall "fatness"/pins
+  n2: number; // exponent controlling concavity of valleys
+  n3: number; // exponent controlling concavity of peaks
+  height: number; // mm
+  twist: number; // cumulative axial twist (radians)
+  taper: number; // rim radius relative to base (1.0 = straight)
+  wallThickness: number; // mm, for hollow 3D print
+  resolutionRadial: number;
+  resolutionHeight: number;
+}
+
 export interface ConfiguratorState {
   generatorType: GeneratorType;
   vase: VaseParams;
@@ -113,6 +129,7 @@ export interface ConfiguratorState {
   gear: GearParams;
   sculpture: SculptureParams;
   lantern: LanternParams;
+  custom: CustomParams;
 
   // Viewport & Rendering Settings
   materialMode: MaterialMode;

@@ -52,6 +52,9 @@ export const PresetsBar: React.FC<PresetsBarProps> = ({
       case 'lantern':
         params = state.lantern;
         break;
+      case 'custom':
+        params = state.custom;
+        break;
     }
 
     const newPreset: Preset = {

@@ -5,6 +5,7 @@ import { generateGearGeometry } from './mechanicalGear';
 import { generateSculptureGeometry } from './mobiusSculpture';
 import { generateGyroidGeometry } from './gyroidLattice';
 import { generateLanternGeometry } from './cyberLantern';
+import { generateSuperformula } from './superformula';
 
 /**
  * Builds BufferGeometry based on current state parameters
@@ -21,6 +22,8 @@ export function buildGeometry(state: ConfiguratorState): THREE.BufferGeometry {
       return generateGyroidGeometry(state.gyroid);
     case 'lantern':
       return generateLanternGeometry(state.lantern);
+    case 'custom':
+      return generateSuperformula(state.custom);
     default:
       return generateVaseGeometry(state.vase);
   }
