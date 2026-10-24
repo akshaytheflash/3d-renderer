@@ -27,6 +27,7 @@ import { ViewportOverlay } from './components/viewport/ViewportOverlay';
 import { ExportModal } from './components/modals/ExportModal';
 import { TechStackModal } from './components/modals/TechStackModal';
 import { OnlineStlViewer } from './components/viewer/OnlineStlViewer';
+import { PanelResizeHandle } from './components/controls/PanelResizeHandle';
 
 const INITIAL_STATE: ConfiguratorState = {
   generatorType: 'vase',
@@ -62,6 +63,26 @@ const INITIAL_STATE: ConfiguratorState = {
 const isNarrowViewport = () =>
   typeof window !== 'undefined' && window.innerWidth < 1024;
 
+// Draggable panel sizing
+const DEFAULT_PANEL_WIDTH = 380;
+const MIN_PANEL_WIDTH = 280;
+const MAX_PANEL_WIDTH = 520;
+// Keep a minimum 340px of viewport between the two panels
+const CENTER_VIEWPORT_FLOOR = 340;
+
+const readStoredPanelWidth = (key: string): number | null => {
+  try {
+    const raw = window.localStorage.getItem(key);
+    const w = raw ? parseInt(raw, 10) : NaN;
+    if (!isNaN(w)) {
+      return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, w));
+    }
+  } catch {
+    /* localStorage unavailable */
+  }
+  return null;
+};
+
 export default function App() {
   const { state, setState, undo, redo, canUndo, canRedo } = useHistoryState(INITIAL_STATE);
   const [rendererInstance, setRendererInstance] = useState<THREE.WebGLRenderer | null>(null);
@@ -74,6 +95,46 @@ export default function App() {
   const [isRightCollapsed, setIsRightCollapsed] = useState(isNarrowViewport);
   const toggleLeftPanel = useCallback(() => setIsLeftCollapsed((v) => !v), []);
   const toggleRightPanel = useCallback(() => setIsRightCollapsed((v) => !v), []);
+
+  // Draggable panel widths (persisted across sessions)
+  const [leftWidth, setLeftWidth] = useState(
+    () => readStoredPanelWidth('kinetic_forge_left_width') ?? DEFAULT_PANEL_WIDTH
+  );
+  const [rightWidth, setRightWidth] = useState(
+    () => readStoredPanelWidth('kinetic_forge_right_width') ?? DEFAULT_PANEL_WIDTH
+  );
+
+  const storePanelWidth = (key: string, w: number) => {
+    try {
+      window.localStorage.setItem(key, String(w));
+    } catch {
+      /* localStorage unavailable */
+    }
+  };
+
+  // Clamp one panel's width so the other panel + a usable viewport always fit
+  const makeClampedResize = useCallback(
+    (side: 'left' | 'right') =>
+      (raw: number) => {
+        const other = side === 'left' ? rightWidth : leftWidth;
+        const maxAllowed = Math.max(
+          MIN_PANEL_WIDTH,
+          Math.min(
+            MAX_PANEL_WIDTH,
+            window.innerWidth - other - CENTER_VIEWPORT_FLOOR
+          )
+        );
+        const clamped = Math.min(maxAllowed, Math.max(MIN_PANEL_WIDTH, raw));
+        if (side === 'left') {
+          setLeftWidth(clamped);
+          storePanelWidth('kinetic_forge_left_width', clamped);
+        } else {
+          setRightWidth(clamped);
+          storePanelWidth('kinetic_forge_right_width', clamped);
+        }
+      },
+    [leftWidth, rightWidth]
+  );
 
   // Camera orientation controller exposed by the viewport.
   // Wrap in an updater-safe setState so the function value isn't mistaken for an updater
@@ -344,12 +405,25 @@ export default function App() {
             <LeftInspector
               state={state}
               isCollapsed={isLeftCollapsed}
+              width={leftWidth}
               onToggleCollapse={toggleLeftPanel}
               onChange={setState}
               onApplyPreset={handleApplyPreset}
               onRandomize={handleRandomize}
               onImportJson={handleImportJson}
             />
+
+            {/* Drag to resize left panel */}
+            {!isLeftCollapsed && (
+              <PanelResizeHandle
+                side="left"
+                width={leftWidth}
+                min={MIN_PANEL_WIDTH}
+                max={MAX_PANEL_WIDTH}
+                onResize={makeClampedResize('left')}
+                onReset={() => makeClampedResize('left')(DEFAULT_PANEL_WIDTH)}
+              />
+            )}
 
             {/* Center Interactive 3D Viewport */}
             <div className="relative flex-1 h-full overflow-hidden">
@@ -373,12 +447,25 @@ export default function App() {
               <BottomShaderDeck state={state} onChange={setState} />
             </div>
 
+            {/* Drag to resize right panel */}
+            {!isRightCollapsed && (
+              <PanelResizeHandle
+                side="right"
+                width={rightWidth}
+                min={MIN_PANEL_WIDTH}
+                max={MAX_PANEL_WIDTH}
+                onResize={makeClampedResize('right')}
+                onReset={() => makeClampedResize('right')(DEFAULT_PANEL_WIDTH)}
+              />
+            )}
+
             {/* Right Print Diagnostics & Slicing Panel */}
             <RightDiagnostics
               state={state}
               metrics={metrics}
               estimate={printEstimate}
               isCollapsed={isRightCollapsed}
+              width={rightWidth}
               onToggleCollapse={toggleRightPanel}
               onAutoRepairTopology={handleAutoRepairTopology}
               onChange={setState}

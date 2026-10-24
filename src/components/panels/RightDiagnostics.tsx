@@ -33,6 +33,7 @@ interface RightDiagnosticsProps {
   metrics: GeometryMetrics;
   estimate: PrintEstimate;
   isCollapsed: boolean;
+  width: number;
   onToggleCollapse: () => void;
   onAutoRepairTopology: () => void;
   onChange: (updater: (prev: ConfiguratorState) => ConfiguratorState) => void;
@@ -47,6 +48,7 @@ export const RightDiagnostics: React.FC<RightDiagnosticsProps> = ({
   metrics,
   estimate,
   isCollapsed,
+  width,
   onToggleCollapse,
   onAutoRepairTopology,
   onChange,
@@ -91,7 +93,10 @@ export const RightDiagnostics: React.FC<RightDiagnosticsProps> = ({
   }
 
   return (
-    <div className="w-80 sm:w-96 lg:w-[380px] h-full flex flex-col bg-slate-900/95 border-l border-white/10 backdrop-blur-xl z-20 select-none overflow-hidden shadow-2xl transition-all">
+    <div
+      style={{ width }}
+      className="h-full flex flex-col bg-slate-900/95 border-l border-white/10 backdrop-blur-xl z-20 select-none overflow-hidden shadow-2xl shrink-0"
+    >
       {/* Panel Header */}
       <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-2">

@@ -15,6 +15,7 @@ import { BUILTIN_PRESETS } from '../../core/presets/presetsList';
 interface LeftInspectorProps {
   state: ConfiguratorState;
   isCollapsed: boolean;
+  width: number;
   onToggleCollapse: () => void;
   onChange: (updater: (prev: ConfiguratorState) => ConfiguratorState) => void;
   onApplyPreset: (preset: Preset) => void;
@@ -27,6 +28,7 @@ const GENERATORS: GeneratorType[] = ['vase', 'gear', 'sculpture', 'gyroid', 'lan
 export const LeftInspector: React.FC<LeftInspectorProps> = ({
   state,
   isCollapsed,
+  width,
   onToggleCollapse,
   onChange,
   onApplyPreset,
@@ -119,7 +121,10 @@ export const LeftInspector: React.FC<LeftInspectorProps> = ({
   }
 
   return (
-    <div className="w-80 sm:w-96 lg:w-[380px] h-full flex flex-col bg-slate-900/95 border-r border-white/10 backdrop-blur-xl z-20 select-none overflow-hidden shadow-2xl transition-all">
+    <div
+      style={{ width }}
+      className="h-full flex flex-col bg-slate-900/95 border-r border-white/10 backdrop-blur-xl z-20 select-none overflow-hidden shadow-2xl shrink-0"
+    >
       {/* Panel Header */}
       <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-2">
