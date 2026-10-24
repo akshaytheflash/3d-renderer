@@ -5,10 +5,14 @@ import { ConfiguratorState, BED_PRESETS } from '../../types/configurator';
 import { getMaterialForMode } from '../../core/shaders/matcapShaders';
 import { createOverhangMaterial } from '../../core/shaders/overhangShader';
 
+export type CameraView = 'iso' | 'top' | 'front' | 'right';
+export type CameraViewController = (view: CameraView) => void;
+
 interface ThreeCanvasProps {
   geometry: THREE.BufferGeometry | null;
   state: ConfiguratorState;
   onRendererReady?: (renderer: THREE.WebGLRenderer) => void;
+  onCameraReady?: (setView: CameraViewController) => void;
   sliceGeometry?: THREE.BufferGeometry | null;
 }
 
@@ -16,6 +20,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   geometry,
   state,
   onRendererReady,
+  onCameraReady,
   sliceGeometry,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -28,6 +33,45 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const bedGroupRef = useRef<THREE.Group | null>(null);
   const sliceLinesRef = useRef<THREE.LineSegments | null>(null);
   const bboxHelperRef = useRef<THREE.BoxHelper | null>(null);
+  // Flag set by mutation effects; consumed by the render loop to render only when needed
+  const invalidateRef = useRef(true);
+  const invalidate = useCallback(() => {
+    invalidateRef.current = true;
+  }, []);
+
+  // Camera view switcher (defined before setup so the mount effect can expose it)
+  const setCameraView = useCallback((view: CameraView) => {
+    if (!cameraRef.current || !controlsRef.current) return;
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+
+    const target = new THREE.Vector3(0, 50, 0);
+    controls.target.copy(target);
+
+    switch (view) {
+      case 'top':
+        camera.position.set(0, 320, 0.01);
+        break;
+      case 'front':
+        camera.position.set(0, 50, 300);
+        break;
+      case 'right':
+        camera.position.set(300, 50, 0);
+        break;
+      case 'iso':
+      default:
+        camera.position.set(160, 180, 240);
+        break;
+    }
+    controls.update();
+    invalidateRef.current = true;
+  }, []);
+
+  // Keep a ref to the latest camera-ready callback for the mount effect
+  const onCameraReadyRef = useRef(onCameraReady);
+  useEffect(() => {
+    onCameraReadyRef.current = onCameraReady;
+  }, [onCameraReady]);
 
   // Setup Scene, Camera, Renderer, Controls
   useEffect(() => {
@@ -45,11 +89,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     camera.position.set(160, 180, 240);
     cameraRef.current = camera;
 
-    // Renderer
+    // Renderer (no preserveDrawingBuffer: snapshots re-render on capture instead)
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
-      preserveDrawingBuffer: true,
       powerPreference: 'high-performance',
     });
     renderer.setSize(width, height);
@@ -57,15 +100,22 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.1;
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap; // three r180+ removed PCFSoftShadowMap
     renderer.localClippingEnabled = true;
 
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
+    // Attach scene/camera so captureCanvasSnapshot can re-render on demand
+    (renderer as any).__forgeScene = scene;
+    (renderer as any).__forgeCamera = camera;
+
     if (onRendererReady) {
       onRendererReady(renderer);
+    }
+    if (onCameraReadyRef.current) {
+      onCameraReadyRef.current(setCameraView);
     }
 
     // Controls
@@ -109,41 +159,73 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     scene.add(mesh);
     mainMeshRef.current = mesh;
 
-    // Animation Loop
+    // Render-on-demand loop: render only when controls move or something invalidated
     let animId: number;
     const animate = () => {
       animId = requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
+      const cameraMoved = controls.update();
+      if (invalidateRef.current || cameraMoved) {
+        invalidateRef.current = false;
+        renderer.render(scene, camera);
+      }
     };
     animate();
 
-    // Resize Handler
+    // Resize handling via ResizeObserver: catches panel collapse/layout shifts too
     const handleResize = () => {
-      if (!container) return;
       const w = container.clientWidth;
       const h = container.clientHeight;
+      if (w === 0 || h === 0) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      invalidateRef.current = true;
     };
-    window.addEventListener('resize', handleResize);
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(container);
 
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
+
+      // Dispose scene contents owned by this canvas (app-owned geometry is kept)
+      scene.traverse((obj) => {
+        if (obj === mesh) return;
+        const lineObj = obj as THREE.LineSegments;
+        if (lineObj.geometry) lineObj.geometry.dispose();
+        const mat = (obj as THREE.Mesh).material;
+        if (mat) {
+          (Array.isArray(mat) ? mat : [mat]).forEach((m) => m.dispose());
+        }
+      });
+      mesh.geometry = null as any;
+
       renderer.dispose();
-      container.innerHTML = '';
+      container.removeChild(renderer.domElement);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update Bed & Grid when selectedBed or showBedGrid changes
   useEffect(() => {
     if (!bedGroupRef.current) return;
     const bedGroup = bedGroupRef.current;
+
+    // Dispose previous bed objects before clearing
+    bedGroup.traverse((obj) => {
+      const lineObj = obj as THREE.LineSegments;
+      if (lineObj.geometry) lineObj.geometry.dispose();
+      const mat = (obj as THREE.Mesh).material;
+      if (mat) {
+        (Array.isArray(mat) ? mat : [mat]).forEach((m) => m.dispose());
+      }
+    });
     bedGroup.clear();
 
-    if (!state.showBedGrid) return;
+    if (!state.showBedGrid) {
+      invalidate();
+      return;
+    }
 
     const bedSpec = BED_PRESETS[state.selectedBed] || BED_PRESETS['bambu-x1c'];
     const { x: bedX, y: bedZ, z: bedY } = bedSpec; // Three.js Y is height!
@@ -182,7 +264,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       new THREE.LineBasicMaterial({ color: 0x2e3846, transparent: true, opacity: 0.4 })
     );
     bedGroup.add(cage);
-  }, [state.selectedBed, state.showBedGrid]);
+
+    invalidate();
+  }, [state.selectedBed, state.showBedGrid, invalidate]);
 
   // Update Geometry & Materials
   useEffect(() => {
@@ -190,8 +274,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const mesh = mainMeshRef.current;
     const scene = sceneRef.current;
 
+    // Dispose the replaced geometry if it was produced by an earlier generation
+    const prevGeometry = mesh.geometry;
+    if (prevGeometry && prevGeometry !== geometry) {
+      prevGeometry.dispose();
+    }
+
     if (!geometry) {
       mesh.visible = false;
+      invalidate();
       return;
     }
 
@@ -257,6 +348,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       scene.add(helper);
       bboxHelperRef.current = helper;
     }
+
+    invalidate();
   }, [
     geometry,
     state.materialMode,
@@ -267,6 +360,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     state.clippingPlane,
     state.clippingOffset,
     state.overhangThreshold,
+    invalidate,
   ]);
 
   // Slicer Toolpath Visualization
@@ -304,42 +398,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         mainMeshRef.current.material.transparent = state.materialMode === 'resin';
       }
     }
-  }, [state.slicerActive, sliceGeometry]);
 
-  // Camera View Switcher
-  const setCameraView = useCallback((view: 'iso' | 'top' | 'front' | 'right') => {
-    if (!cameraRef.current || !controlsRef.current) return;
-    const camera = cameraRef.current;
-    const controls = controlsRef.current;
-
-    const target = new THREE.Vector3(0, 50, 0);
-    controls.target.copy(target);
-
-    switch (view) {
-      case 'top':
-        camera.position.set(0, 320, 0.01);
-        break;
-      case 'front':
-        camera.position.set(0, 50, 300);
-        break;
-      case 'right':
-        camera.position.set(300, 50, 0);
-        break;
-      case 'iso':
-      default:
-        camera.position.set(160, 180, 240);
-        break;
-    }
-    controls.update();
-  }, []);
-
-  // Expose camera view switcher globally on window for overlay controls
-  useEffect(() => {
-    (window as any).__KINETIC_SET_CAMERA_VIEW = setCameraView;
-    return () => {
-      delete (window as any).__KINETIC_SET_CAMERA_VIEW;
-    };
-  }, [setCameraView]);
+    invalidate();
+  }, [state.slicerActive, sliceGeometry, state.materialMode, invalidate]);
 
   return (
     <div

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useDeferredValue } from 'react';
 import * as THREE from 'three';
 import {
   ConfiguratorState,
@@ -8,6 +8,7 @@ import {
 import { useHistoryState } from './hooks/useHistoryState';
 import { buildGeometry } from './core/generators/generatorRegistry';
 import { calculateGeometryMetrics } from './core/analyzers/volumeCalculator';
+import { sealBoundaryEdges } from './core/analyzers/meshRepair';
 import { estimatePrintCostAndTime } from './core/analyzers/printEstimator';
 import { generateLayerSlices } from './core/analyzers/slicerSimulator';
 import { exportBinarySTL, exportAsciiSTL, downloadFile } from './core/exporters/stlExporter';
@@ -17,14 +18,15 @@ import { sound } from './core/audio/synthAudio';
 import { BUILTIN_PRESETS } from './core/presets/presetsList';
 
 // UI Components
-import { TopNavigationBar } from './components/panels/TopNavigationBar';
+import { TopNavigationBar, ActiveAppView } from './components/panels/TopNavigationBar';
 import { LeftInspector } from './components/panels/LeftInspector';
 import { RightDiagnostics } from './components/panels/RightDiagnostics';
 import { BottomShaderDeck } from './components/panels/BottomShaderDeck';
-import { ThreeCanvas } from './components/viewport/ThreeCanvas';
+import { ThreeCanvas, CameraViewController } from './components/viewport/ThreeCanvas';
 import { ViewportOverlay } from './components/viewport/ViewportOverlay';
 import { ExportModal } from './components/modals/ExportModal';
 import { TechStackModal } from './components/modals/TechStackModal';
+import { OnlineStlViewer } from './components/viewer/OnlineStlViewer';
 
 const INITIAL_STATE: ConfiguratorState = {
   generatorType: 'vase',
@@ -55,9 +57,29 @@ const INITIAL_STATE: ConfiguratorState = {
   audioEnabled: true,
 };
 
+// Side panels start collapsed on narrow (mobile/tablet) viewports
+const isNarrowViewport = () =>
+  typeof window !== 'undefined' && window.innerWidth < 1024;
+
 export default function App() {
   const { state, setState, undo, redo, canUndo, canRedo } = useHistoryState(INITIAL_STATE);
   const [rendererInstance, setRendererInstance] = useState<THREE.WebGLRenderer | null>(null);
+
+  // Workspace switcher: Procedural Generator vs Online STL Viewer
+  const [activeView, setActiveView] = useState<ActiveAppView>('generator');
+
+  // Panel collapse (defaults collapsed on narrow viewports)
+  const [isLeftCollapsed, setIsLeftCollapsed] = useState(isNarrowViewport);
+  const [isRightCollapsed, setIsRightCollapsed] = useState(isNarrowViewport);
+  const toggleLeftPanel = useCallback(() => setIsLeftCollapsed((v) => !v), []);
+  const toggleRightPanel = useCallback(() => setIsRightCollapsed((v) => !v), []);
+
+  // Camera orientation controller exposed by the viewport.
+  // Wrap in an updater-safe setState so the function value isn't mistaken for an updater
+  const [cameraController, setCameraController] = useState<CameraViewController | null>(null);
+  const handleCameraReady = useCallback((setView: CameraViewController) => {
+    setCameraController(() => setView);
+  }, []);
 
   // Modals state
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -72,22 +94,49 @@ export default function App() {
     });
   }, [setState]);
 
-  // Build Procedural Geometry
-  const geometry = useMemo(() => {
+  // Build Procedural Geometry.
+  // Deferred so slider drags keep the UI responsive on heavy generators.
+  const deferredState = useDeferredValue(state);
+  // Parameters are destructured so geometry only rebuilds when generator
+  // params actually change (not on unrelated state tweaks like materials).
+  const {
+    generatorType: deferredGeneratorType,
+    vase: deferredVase,
+    gear: deferredGear,
+    sculpture: deferredSculpture,
+    gyroid: deferredGyroid,
+    lantern: deferredLantern,
+  } = deferredState;
+  const baseGeometry = useMemo(() => {
     try {
-      return buildGeometry(state);
+      return buildGeometry({
+        generatorType: deferredGeneratorType,
+        vase: deferredVase,
+        gear: deferredGear,
+        sculpture: deferredSculpture,
+        gyroid: deferredGyroid,
+        lantern: deferredLantern,
+      } as ConfiguratorState);
     } catch (e) {
       console.error('Geometry generation error:', e);
       return null;
     }
-  }, [
-    state.generatorType,
-    state.vase,
-    state.gear,
-    state.sculpture,
-    state.gyroid,
-    state.lantern,
-  ]);
+  }, [deferredGeneratorType, deferredVase, deferredGear, deferredSculpture, deferredGyroid, deferredLantern]);
+
+  // Auto-Repair topology: tracks *which* base geometry was repaired, so a
+  // repair goes stale automatically as soon as parameters regenerate the mesh
+  const [repairSource, setRepairSource] = useState<THREE.BufferGeometry | null>(null);
+
+  const geometry = useMemo(() => {
+    if (repairSource && repairSource === baseGeometry) {
+      return sealBoundaryEdges(baseGeometry) ?? baseGeometry;
+    }
+    return baseGeometry;
+  }, [baseGeometry, repairSource]);
+
+  const handleAutoRepairTopology = useCallback(() => {
+    setRepairSource(baseGeometry);
+  }, [baseGeometry]);
 
   // Physical & Printability Metrics
   const metrics: GeometryMetrics = useMemo(() => {
@@ -98,6 +147,10 @@ export default function App() {
         volumeCm3: 0,
         surfaceAreaCm2: 0,
         isWatertight: false,
+        boundaryEdgeCount: 0,
+        nonManifoldEdgeCount: 0,
+        diagnosticSummary: 'No Geometry',
+        diagnosticSuggestion: 'Generate or upload a 3D geometry to analyze.',
         boundingBox: { width: 0, depth: 0, height: 0 },
         printTimeMinutes: 0,
         filamentMassGrams: 0,
@@ -256,6 +309,8 @@ export default function App() {
       {/* Top Header Navigation */}
       <TopNavigationBar
         state={state}
+        activeView={activeView}
+        onSelectView={setActiveView}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
@@ -266,46 +321,60 @@ export default function App() {
 
       {/* Main Workspace Frame */}
       <div className="relative flex-1 w-full h-[calc(100vh-48px)] flex overflow-hidden">
-        {/* Left Morphogenesis Controls Bank */}
-        <LeftInspector
-          state={state}
-          onChange={setState}
-          onApplyPreset={handleApplyPreset}
-          onRandomize={handleRandomize}
-          onImportJson={handleImportJson}
-        />
+        {activeView === 'generator' ? (
+          <>
+            {/* Left Morphogenesis Controls Bank */}
+            <LeftInspector
+              state={state}
+              isCollapsed={isLeftCollapsed}
+              onToggleCollapse={toggleLeftPanel}
+              onChange={setState}
+              onApplyPreset={handleApplyPreset}
+              onRandomize={handleRandomize}
+              onImportJson={handleImportJson}
+            />
 
-        {/* Center Interactive 3D Viewport */}
-        <div className="relative flex-1 h-full overflow-hidden">
-          <ThreeCanvas
-            geometry={geometry}
-            state={state}
-            onRendererReady={setRendererInstance}
-            sliceGeometry={sliceGeometry}
-          />
+            {/* Center Interactive 3D Viewport */}
+            <div className="relative flex-1 h-full overflow-hidden">
+              <ThreeCanvas
+                geometry={geometry}
+                state={state}
+                onRendererReady={setRendererInstance}
+                onCameraReady={handleCameraReady}
+                sliceGeometry={sliceGeometry}
+              />
 
-          {/* Viewport Floating HUD & Quick Orientation Controls */}
-          <ViewportOverlay
-            metrics={metrics}
-            isOverhangMode={state.materialMode === 'overhang'}
-            isSlicerActive={state.slicerActive}
-          />
+              {/* Viewport Floating HUD & Quick Orientation Controls */}
+              <ViewportOverlay
+                metrics={metrics}
+                isOverhangMode={state.materialMode === 'overhang'}
+                isSlicerActive={state.slicerActive}
+                onSetCameraView={cameraController ?? undefined}
+              />
 
-          {/* Bottom Floating Material & Bed Deck */}
-          <BottomShaderDeck state={state} onChange={setState} />
-        </div>
+              {/* Bottom Floating Material & Bed Deck */}
+              <BottomShaderDeck state={state} onChange={setState} />
+            </div>
 
-        {/* Right Print Diagnostics & Slicing Panel */}
-        <RightDiagnostics
-          state={state}
-          metrics={metrics}
-          estimate={printEstimate}
-          onChange={setState}
-          onOpenExportModal={() => setIsExportModalOpen(true)}
-          onQuickExportStl={handleExportBinaryStl}
-          onQuickExportObj={handleExportObj}
-          onQuickSnapshot={handleExportSnapshot}
-        />
+            {/* Right Print Diagnostics & Slicing Panel */}
+            <RightDiagnostics
+              state={state}
+              metrics={metrics}
+              estimate={printEstimate}
+              isCollapsed={isRightCollapsed}
+              onToggleCollapse={toggleRightPanel}
+              onAutoRepairTopology={handleAutoRepairTopology}
+              onChange={setState}
+              onOpenExportModal={() => setIsExportModalOpen(true)}
+              onQuickExportStl={handleExportBinaryStl}
+              onQuickExportObj={handleExportObj}
+              onQuickSnapshot={handleExportSnapshot}
+            />
+          </>
+        ) : (
+          /* Online STL/OBJ Drop-in Viewer Workspace */
+          <OnlineStlViewer baseState={state} />
+        )}
       </div>
 
       {/* Export Options Modal */}

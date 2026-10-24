@@ -5,7 +5,8 @@ import { GeometryMetrics } from '../../types/configurator';
  * Calculates real physical metrics for 3D printing:
  * - Manifold signed volume (cm³) via tetrahedron integration
  * - Surface area (cm²)
- * - Watertightness
+ * - Watertightness with spatial vertex edge quantization
+ * - Boundary edge count & actionable diagnostic breakdown
  * - Bounding box (mm)
  * - Overhang percentage (> threshold angle)
  */
@@ -23,6 +24,10 @@ export function calculateGeometryMetrics(
       volumeCm3: 0,
       surfaceAreaCm2: 0,
       isWatertight: false,
+      boundaryEdgeCount: 0,
+      nonManifoldEdgeCount: 0,
+      diagnosticSummary: 'Empty Geometry',
+      diagnosticSuggestion: 'Generate or upload a 3D geometry to analyze.',
       boundingBox: { width: 0, depth: 0, height: 0 },
       printTimeMinutes: 0,
       filamentMassGrams: 0,
@@ -49,16 +54,15 @@ export function calculateGeometryMetrics(
   const edgeAC = new THREE.Vector3();
   const normal = new THREE.Vector3();
 
-  // Edge map for watertightness checking
-  // Each edge (minIdx, maxIdx) in a closed 2-manifold must be shared by exactly 2 triangles
+  // Spatial vertex key mapping to handle duplicate coincident vertices (e.g. UV seams)
+  // Quantize coordinates to 0.02mm precision
+  const quantize = (v: THREE.Vector3) =>
+    `${Math.round(v.x * 50)}_${Math.round(v.y * 50)}_${Math.round(v.z * 50)}`;
+
   const edgeCountMap = new Map<string, number>();
-  let hasBoundaryEdges = false;
 
   const radOverhangThreshold = (overhangThresholdDegrees * Math.PI) / 180;
-  // In our coordinates, Y is UP (perpendicular to print bed)
-  // Bed normal pointing straight down is (0, -1, 0)
-  // Angle with downward normal: face pointing straight down has dot = 1.0 (90° overhang)
-  // Face pointing horizontally has dot = 0.0 (45° or 0° overhang depending on convention)
+  const sinOverhang = Math.sin(radOverhangThreshold);
 
   for (let f = 0; f < numFaces; f++) {
     let iA = f * 3;
@@ -82,39 +86,63 @@ export function calculateGeometryMetrics(
     const crossZ = vB.x * vC.y - vB.y * vC.x;
     totalSignedVolumeMm3 += (vA.x * crossX + vA.y * crossY + vA.z * crossZ) / 6.0;
 
-    // Face area: 0.5 * ||(B - A) x (C - A)||
+    // Face area
     edgeAB.subVectors(vB, vA);
     edgeAC.subVectors(vC, vA);
     normal.crossVectors(edgeAB, edgeAC);
     const area = normal.length() * 0.5;
     totalSurfaceAreaMm2 += area;
 
-    // Overhang check: face normal relative to DOWN vector (0, -1, 0)
+    // Overhang check: downward face normal
     if (area > 1e-6) {
       normal.normalize();
-      // dot with (0, -1, 0) is -normal.y
-      // If -normal.y > sin(angle), it requires support
-      // An overhang angle of 45° means normal is tilted more than 45° downward
-      if (-normal.y > Math.sin(radOverhangThreshold) && vA.y > bb.min.y + 1.0) {
+      if (-normal.y > sinOverhang && vA.y > bb.min.y + 0.8) {
         overhangAreaMm2 += area;
       }
     }
 
-    // Watertight topological edge tracking
-    const registerEdge = (idx1: number, idx2: number) => {
-      const k = idx1 < idx2 ? `${idx1}_${idx2}` : `${idx2}_${idx1}`;
+    // Spatial edge tracking
+    const kA = quantize(vA);
+    const kB = quantize(vB);
+    const kC = quantize(vC);
+
+    const registerEdge = (p1: string, p2: string) => {
+      if (p1 === p2) return; // ignore degenerate edge
+      const k = p1 < p2 ? `${p1}|${p2}` : `${p2}|${p1}`;
       edgeCountMap.set(k, (edgeCountMap.get(k) || 0) + 1);
     };
-    registerEdge(iA, iB);
-    registerEdge(iB, iC);
-    registerEdge(iC, iA);
+
+    registerEdge(kA, kB);
+    registerEdge(kB, kC);
+    registerEdge(kC, kA);
   }
 
-  // Check watertightness: no edge with count !== 2
+  // Count open boundary edges (edge count == 1) and non-manifold edges (edge count > 2)
+  let boundaryEdges = 0;
+  let nonManifoldEdges = 0;
+
   for (const count of edgeCountMap.values()) {
-    if (count !== 2) {
-      hasBoundaryEdges = true;
-      break;
+    if (count === 1) {
+      boundaryEdges++;
+    } else if (count > 2) {
+      nonManifoldEdges++;
+    }
+  }
+
+  const isWatertight = boundaryEdges === 0 && nonManifoldEdges === 0;
+
+  let diagnosticSummary = 'Solid 2-Manifold Mesh';
+  let diagnosticSuggestion = 'Geometry is closed, watertight, and 100% slice-ready for 3D printing.';
+
+  if (!isWatertight) {
+    if (boundaryEdges > 0) {
+      diagnosticSummary = `${boundaryEdges} Open Boundary Edges Detected`;
+      diagnosticSuggestion =
+        'The surface contains open seams or uncapped openings. Click "Auto-Repair Topology" to seal open boundaries and generate watertight caps.';
+    } else if (nonManifoldEdges > 0) {
+      diagnosticSummary = `${nonManifoldEdges} Non-Manifold T-Junctions`;
+      diagnosticSuggestion =
+        'Internal intersecting walls detected. Slicers can usually autofix this or you can reduce wall thickness.';
     }
   }
 
@@ -127,13 +155,17 @@ export function calculateGeometryMetrics(
     faceCount: numFaces,
     volumeCm3: parseFloat(volumeCm3.toFixed(2)),
     surfaceAreaCm2: parseFloat(surfaceAreaCm2.toFixed(2)),
-    isWatertight: !hasBoundaryEdges,
+    isWatertight,
+    boundaryEdgeCount: boundaryEdges,
+    nonManifoldEdgeCount: nonManifoldEdges,
+    diagnosticSummary,
+    diagnosticSuggestion,
     boundingBox: {
       width: Math.round(widthMm),
       depth: Math.round(depthMm),
       height: Math.round(heightMm),
     },
-    printTimeMinutes: 0, // Will be computed in printEstimator
+    printTimeMinutes: 0,
     filamentMassGrams: 0,
     estimatedCostUsd: 0,
     overhangWarningAreaPercentage: parseFloat(overhangPercentage.toFixed(1)),

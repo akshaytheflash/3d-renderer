@@ -29,7 +29,6 @@ export const PresetsBar: React.FC<PresetsBarProps> = ({
   const [newPresetName, setNewPresetName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
 
-  // Filter presets matching current active generator type
   const matchingPresets = BUILTIN_PRESETS.filter((p) => p.generatorType === state.generatorType);
   const matchingCustom = customPresets.filter((p) => p.generatorType === state.generatorType);
 
@@ -58,7 +57,7 @@ export const PresetsBar: React.FC<PresetsBarProps> = ({
     const newPreset: Preset = {
       id: `custom_${Date.now()}`,
       name: newPresetName.trim(),
-      description: `User defined preset for ${state.generatorType.toUpperCase()}`,
+      description: `User defined preset for ${state.generatorType}`,
       generatorType: state.generatorType,
       params: { ...params },
     };
@@ -106,7 +105,7 @@ export const PresetsBar: React.FC<PresetsBarProps> = ({
         const parsed = JSON.parse(event.target?.result as string);
         onImportJson(parsed);
         sound.playMorph();
-      } catch (err) {
+      } catch {
         alert('Invalid JSON preset file.');
       }
     };
@@ -114,11 +113,11 @@ export const PresetsBar: React.FC<PresetsBarProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 pt-2 border-t border-[#232b38]/70">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-[#8e9dae] font-mono flex items-center gap-1.5 font-medium">
-          <Bookmark className="w-3.5 h-3.5 text-[#00f0ff]" />
-          PRESET MORPHOLOGIES
+    <div className="flex flex-col gap-2 pt-3 border-t border-white/5">
+      <div className="flex items-center justify-between text-xs font-sans">
+        <span className="text-slate-300 font-medium flex items-center gap-1.5">
+          <Bookmark className="w-3.5 h-3.5 text-cyan-400" />
+          Morphology Presets
         </span>
 
         <div className="flex items-center gap-1">
@@ -127,42 +126,42 @@ export const PresetsBar: React.FC<PresetsBarProps> = ({
               onRandomize();
               sound.playMorph();
             }}
-            className="flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-sm bg-[#12161f] border border-[#232b38] text-[#8e9dae] hover:text-[#00f0ff] hover:border-[#00f0ff]/50 transition-colors"
+            className="flex items-center gap-1 text-[11px] font-sans px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-cyan-400 border border-white/5 transition-colors"
             title="Randomize Parameters"
           >
-            <Dices className="w-3 h-3 text-[#00f0ff]" />
-            MUTATE
+            <Dices className="w-3 h-3 text-cyan-400" />
+            Mutate
           </button>
 
           <button
             onClick={() => setShowSaveDialog(!showSaveDialog)}
-            className="text-[11px] font-mono px-2 py-0.5 rounded-sm bg-[#12161f] border border-[#232b38] text-[#8e9dae] hover:text-[#00f0ff] hover:border-[#00f0ff]/50 transition-colors"
+            className="text-[11px] font-sans px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-cyan-400 border border-white/5 transition-colors"
           >
-            + SAVE
+            + Save
           </button>
         </div>
       </div>
 
       {showSaveDialog && (
-        <div className="flex items-center gap-1.5 p-2 bg-[#0a0d12] border border-[#00f0ff]/40 rounded-sm">
+        <div className="flex items-center gap-1.5 p-2 bg-slate-950 border border-cyan-500/40 rounded">
           <input
             type="text"
             placeholder="Preset Name..."
             value={newPresetName}
             onChange={(e) => setNewPresetName(e.target.value)}
-            className="bg-[#12161f] border border-[#232b38] rounded-sm px-2 py-1 text-xs text-[#e1e7ec] flex-1 focus:border-[#00f0ff] focus:outline-none"
+            className="bg-slate-900 border border-white/10 rounded px-2.5 py-1 text-xs text-white flex-1 focus:border-cyan-400 focus:outline-none"
           />
           <button
             onClick={handleSaveCustom}
-            className="p-1 rounded-sm bg-[#00f0ff] text-[#0a0d12] hover:bg-[#38bdf8] transition-colors"
+            className="p-1 rounded bg-cyan-500 text-slate-950 hover:bg-cyan-400 transition-colors"
           >
             <Check className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
         </div>
       )}
 
-      {/* Preset Pills List */}
-      <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
+      {/* Preset List */}
+      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
         {matchingPresets.map((preset) => (
           <button
             key={preset.id}
@@ -170,12 +169,12 @@ export const PresetsBar: React.FC<PresetsBarProps> = ({
               onApplyPreset(preset);
               sound.playMorph();
             }}
-            className="text-left px-2.5 py-1.5 rounded-sm bg-[#12161f] border border-[#232b38] hover:border-[#00f0ff]/60 hover:bg-[#1b2330] transition-colors group flex-1 min-w-[130px]"
+            className="text-left px-2.5 py-1.5 rounded bg-slate-950/60 border border-white/5 hover:border-cyan-500/40 hover:bg-slate-800/60 transition-colors group flex-1 min-w-[130px]"
           >
-            <div className="text-[11px] font-mono font-medium text-[#e1e7ec] group-hover:text-[#00f0ff] truncate">
+            <div className="text-xs font-sans font-medium text-slate-200 group-hover:text-cyan-400 truncate">
               {preset.name}
             </div>
-            <div className="text-[9px] text-[#6b7b8e] truncate font-sans">
+            <div className="text-[10px] text-slate-500 truncate font-sans">
               {preset.description}
             </div>
           </button>
@@ -188,17 +187,17 @@ export const PresetsBar: React.FC<PresetsBarProps> = ({
               onApplyPreset(preset);
               sound.playMorph();
             }}
-            className="flex items-center justify-between px-2.5 py-1.5 rounded-sm bg-[#12161f] border border-[#232b38] hover:border-[#00f0ff]/60 hover:bg-[#1b2330] transition-colors cursor-pointer group flex-1 min-w-[130px]"
+            className="flex items-center justify-between px-2.5 py-1.5 rounded bg-slate-950/60 border border-cyan-500/30 hover:border-cyan-400 hover:bg-slate-800/60 transition-colors cursor-pointer group flex-1 min-w-[130px]"
           >
             <div className="truncate">
-              <div className="text-[11px] font-mono font-medium text-[#00f0ff] truncate">
+              <div className="text-xs font-sans font-medium text-cyan-400 truncate">
                 {preset.name}
               </div>
-              <div className="text-[9px] text-[#8e9dae] truncate">Custom</div>
+              <div className="text-[10px] text-slate-400 truncate font-sans">Custom</div>
             </div>
             <button
               onClick={(e) => handleDeleteCustom(preset.id, e)}
-              className="text-[#6b7b8e] hover:text-[#ef4444] p-1 transition-colors"
+              className="text-slate-500 hover:text-red-400 p-1 transition-colors"
               title="Delete Preset"
             >
               <Trash2 className="w-3 h-3" />
@@ -207,20 +206,20 @@ export const PresetsBar: React.FC<PresetsBarProps> = ({
         ))}
       </div>
 
-      {/* JSON Import/Export Bar */}
-      <div className="flex items-center justify-end gap-2 text-[10px] font-mono text-[#6b7b8e] pt-1">
-        <label className="flex items-center gap-1 cursor-pointer hover:text-[#8e9dae] transition-colors">
+      {/* JSON Import/Export */}
+      <div className="flex items-center justify-end gap-2 text-[11px] font-sans text-slate-500 pt-1">
+        <label className="flex items-center gap-1 cursor-pointer hover:text-slate-300 transition-colors">
           <Upload className="w-3 h-3" />
-          <span>LOAD JSON</span>
+          <span>Load JSON</span>
           <input type="file" accept=".json" onChange={handleFileImport} className="hidden" />
         </label>
         <span>•</span>
         <button
           onClick={handleExportJson}
-          className="flex items-center gap-1 hover:text-[#8e9dae] transition-colors"
+          className="flex items-center gap-1 hover:text-slate-300 transition-colors"
         >
           <Download className="w-3 h-3" />
-          <span>DUMP JSON</span>
+          <span>Export JSON</span>
         </button>
       </div>
     </div>

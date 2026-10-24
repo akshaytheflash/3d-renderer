@@ -145,6 +145,10 @@ export interface GeometryMetrics {
   volumeCm3: number;
   surfaceAreaCm2: number;
   isWatertight: boolean;
+  boundaryEdgeCount: number;
+  nonManifoldEdgeCount: number;
+  diagnosticSummary: string;
+  diagnosticSuggestion: string;
   boundingBox: {
     width: number; // mm
     depth: number; // mm
